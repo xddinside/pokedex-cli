@@ -10,13 +10,24 @@ import (
 type cliCommand struct {
 	name string
 	description string
-	callback func() error
+	callback func(*Config) error
+}
+
+type Config struct {
+	Next string 
+	Previous string 
+	PageNo int 
 }
 
 var commands map[string]cliCommand
 
 func startRepl() {
 	reader := bufio.NewScanner(os.Stdin)
+
+	cfg := Config{
+		Next: "https://pokeapi.co/api/v2/location-area/",
+		Previous: "",
+	}
 
 	commands = map[string]cliCommand{
 		"help": {
@@ -29,24 +40,39 @@ func startRepl() {
 			description: "Exit the pokedex",
 			callback: commandExit,
 		},
+		"clear": {
+			name: "clear",
+			description: "Clear the entire screen",
+			callback: commandClear,
+		},
+		"map": {
+			name: "map",
+			description: "Show the next 20 locations",
+			callback: commandMap,
+		},
+		"mapb": {
+			name: "mapb",
+			description: "Show the previous 20 locations",
+			callback: commandMapb,
+		},
 	}
 
 	for {
 		fmt.Print("Pokedex > ")
 		reader.Scan()
 
-
+		if reader.Text() == "" {
+			continue
+		}
 		cleanText := cleanInput(reader.Text())
 		userCommand := cleanText[0]
 
 		if _, exists := commands[userCommand]; exists {
-			if err := commands[userCommand].callback(); err != nil {
-				errMessage := fmt.Errorf("error occured during running the command: %w", err)
-				fmt.Println(errMessage)
-			}
+			commands[userCommand].callback(&cfg)
 		} else {
-			fmt.Println("Command not found! Enter help more info")
+			fmt.Println("Command not found! Try help more info")
 		}
+
 		fmt.Println()
 	}
 }
